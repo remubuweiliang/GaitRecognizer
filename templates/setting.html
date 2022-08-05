@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+{% raw %}
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<script type="text/javascript" src="https://unpkg.com/vue@2.6.14/dist/vue.min.js"></script>
+<link rel="stylesheet" type="text/css" href="https://unpkg.com/view-design@4.7.0/dist/styles/iview.css">
+<script type="text/javascript" src="https://unpkg.com/view-design@4.7.0/dist/iview.min.js"></script>
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<style>
+
+</style>
+
+<body>
+    <div id="setting" style="text-align: center;">
+        <layout style="background: #fff;">
+            <card v-bind:style="{width:350+0.8*add+'px'}" style="margin: 10% auto;">
+                <p slot="title">
+                    <icon type="md-contrast" :size=0.75*size+0.05*add></icon>
+                </p>
+                <list>
+                    <list-item>
+                        <h1 v-bind:style="{fontSize: 0.75*size+0.05*add+ 'px' }">Theme</h1>
+                        <divider type="vertical" />
+                        <i-switch v-model="flag" @on-change="sendMessage('change-theme')" size="large">
+                            <icon type="ios-cloudy-night" slot="open"></icon>
+                            <icon type="ios-sunny" slot="close"></icon>
+                        </i-switch>
+                    </list-item>
+                    <list-item>
+                        <h1 v-bind:style="{fontSize: 0.75*size+0.05*add+ 'px' }">Font&nbsp;&nbsp;&nbsp;&nbsp;</h1>
+                        <divider type="vertical" />
+                        <slider :step="20" :tip-format="format" v-model="add" show-stops
+                            style="width: 200px;height: 50px;" size="large" @on-input="sizeChange('change-size')">
+                        </slider>
+                    </list-item>
+                </list>
+            </card>
+        </layout>
+    </div>
+    <script>
+        new Vue({
+            el: '#setting',
+            data() {
+                return {
+                    theme: "dark",
+                    flag: true,
+                    size: 24,
+                    add: 0,
+                    time: 0,
+                }
+            },
+            mounted() {
+                this.$nextTick(() => {
+                    window.addEventListener('message', this.handleMessage);
+                    // 告诉父组件准备好接收消息了
+                    const x = {
+                        cmd: 'ready-for-receiving'
+                    };
+                    //转化为json字符串，兼容低版本浏览器
+                    const data = JSON.stringify(x);
+                    window.parent.postMessage(data, '*');
+                })
+            },
+            destroyed() {
+                // 注意移除监听!
+                window.removeEventListener('message', this.handleMessage)
+            },
+            methods: {
+                format(val) {//滑块提示框
+                    return 'Percent: ' + val + '%';
+                },
+                handleMessage(event) {//获取父节点消息
+                    const x = event.data
+                    const data = JSON.parse(x)
+                    switch (data.cmd) {
+                        case 'cannot-change':
+                            {
+                                console.log("Theme cannot change!!!");
+                                this.flag = !this.flag;
+                                break;
+                            }
+                    }
+                },
+                sizeChange(str) {//向父节点发送字体大小变更信息
+                    const x = {
+                        cmd: str,
+                        add: this.add,
+                    };
+                    const data = JSON.stringify(x)
+                    window.parent.postMessage(data, '*');
+                },
+                sendMessage(str) {//向父节点发送主题变更信息
+                    const x = {
+                        cmd: str,
+                    };
+                    const data = JSON.stringify(x)
+                    window.parent.postMessage(data, '*');
+                },
+            }
+        })
+    </script>
+</body>
+{% endraw %}
+
+</html>

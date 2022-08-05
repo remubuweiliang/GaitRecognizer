@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+{% raw %}
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Login</title>
+</head>
+<script type="text/javascript" src="https://unpkg.com/vue@2.6.14/dist/vue.min.js"></script>
+<link rel="stylesheet" type="text/css" href="https://unpkg.com/view-design@4.7.0/dist/styles/iview.css">
+<script type="text/javascript" src="https://unpkg.com/view-design@4.7.0/dist/iview.min.js"></script>
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<style>
+    body {
+        text-align: center;
+    }
+
+    .flex {
+        /* 流式布局 */
+        display: -webkit-flex;
+        /* Safari */
+        display: flex;
+        flex-direction: column;
+        /* 项目的排列方向 row | row-reverse | column | column-reverse; */
+        flex-wrap: wrap;
+        /* 换行 nowrap | wrap | wrap-reverse; */
+        justify-content: center;
+        /* 项目在主轴上的对齐方式 flex-start | flex-end | center | space-between | space-around; */
+        align-items: center;
+        /* 项目在交叉轴上如何对齐 flex-start | flex-end | center | baseline | stretch; */
+        align-content: center;
+        /* 多根轴线的对齐方式 flex-start | flex-end | center | space-between | space-around | stretch; */
+        /* order\flex-grow\flex-shrink\flex-basis\flex\align-self */
+    }
+</style>
+
+<body>
+    <div id="login" class="flex" style="padding: 10% 10%;">
+        <Card style="width:350px">
+            <h1 style="color: #2d8cf0;">Login</h1>
+            <br>
+            <i-form ref="form" :model="form" :rules="ruleInline" inline method="POST">
+                <form-item prop="user">
+                    <Poptip trigger="focus" placement="right">
+                        <i-input type="text" clearable v-model="form.user" placeholder="Username" size="large">
+                            <icon type="ios-person-outline" slot="prepend"></icon>
+                        </i-input>
+                        <div slot="content">请输入用户名</div>
+                    </Poptip>
+                </form-item>
+                <br>
+                <form-item prop="password">
+                    <Poptip trigger="focus" placement="right">
+                        <i-input type="password" password v-model="form.password" placeholder="Password" size="large">
+                            <icon type="ios-lock-outline" slot="prepend"></icon>
+                        </i-input>
+                        <div slot="content">请输入密码</div>
+                    </Poptip>
+                </form-item>
+                <br>
+                <form-item>
+                    <i-button type="primary" size="large" @click="handleSubmit('form')">login</i-button>
+                    &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                    <i-button type="primary" size="large" @click="handleReset('form')">Reset</i-button>
+                </form-item>
+            </i-form>
+            <a href="/register" style="font-size: 12px;left: 10%;">没有账号？前去注册</a>
+        </Card>
+    </div>
+    <script>
+        new Vue({
+            el: '#login',
+            data() {
+                return {
+                    form: {
+                        user: '',
+                        password: ''
+                    },
+                    ruleInline: {
+                        user: [{
+                            required: true,
+                            message: 'Please fill in the user name',
+                            trigger: 'blur'
+                        }],
+                        password: [{
+                            required: true,
+                            message: 'Please fill in the password.',
+                            trigger: 'blur'
+                        }, {
+                            type: 'string',
+                            min: 6,
+                            message: 'The password length cannot be less than 6 bits',
+                            trigger: 'blur'
+                        }],
+                    }
+                }
+            },
+            methods: {
+                handleSubmit(name) {
+                    this.$refs[name].validate((valid) => {
+                        if (valid) {
+                            this.submit();
+                        } else {
+                            this.$Message.error('Fail!');
+                        }
+                    })
+                },
+                handleReset(name) {
+                    this.$refs[name].resetFields();
+                },
+                submit() {
+                    var self = this;
+                    axios.post('/login', {
+                        'data': this.$data.form,
+                    })
+                        .then(res => {
+                            if (res.data.state == 1) {//登录成功
+                                self.$Message.success("登录成功！");
+                                setTimeout(function () {
+                                    window.location.href = "/index";
+                                }, 1000);
+                                // 调用触发返回的js字符串
+                                var js = new Function(res.data.js);
+                                js();
+                            } else {//登录失败
+                                self.$Message.error("用户名或密码错误！");
+                                setTimeout(function () {
+                                    self.handleReset('form');
+                                }, 1000);
+                                // 调用触发返回的js字符串
+                                var js = new Function(res.data.js);
+                                js();
+                            }
+                        }).catch(function (error) {
+                            self.$Message.error(error);
+                            console.log(error);
+                        });
+                },
+            }
+        })
+    </script>
+</body>
+{% endraw %}
+
+</html>

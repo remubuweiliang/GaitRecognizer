@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+{% raw %}
+
+<head>
+    <meta charset="utf-8">
+    <title>测试</title>
+    <script type="text/javascript" src="https://cdn.staticfile.org/vue/2.4.2/vue.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="http://unpkg.com/iview/dist/styles/iview.css">
+    <script type="text/javascript" src="http://unpkg.com/iview/dist/iview.min.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+</head>
+<style>
+    #chatbox {
+        width: 60%;
+        background: rgb(54, 62, 79);
+        margin: 2% 20%;
+        box-shadow: 0 1px 1px rgba(0, 0, 0, .1);
+        border-radius: 10px;
+    }
+
+    /* 修改滚动条样式 */
+
+    ::-webkit-scrollbar {
+        /* 竖轴宽度 */
+        width: 6px;
+        /* 横轴宽度 */
+        height: 6px;
+        background-color: #ffffff;
+    }
+
+    /* 滚动槽 */
+
+    ::-webkit-scrollbar-track {
+        border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background-color: #2db7f5;
+    }
+</style>
+
+<body>
+    <div id="chatroom" style="text-align: center;">
+        <layout style="background: #fff;">
+            <layout id='chatbox'>
+                <content :style="{margin: '20px', background: '#515a6e', minHeight: height*0.7+'px'}">
+                    <scroll :height=height*0.7>
+                        <row style="padding:20px" v-for="(value, index) in message" :key="index"
+                            style="margin: 32px 0;background-color: white;">
+                            <div v-if="value.flag">
+                                <i-col span="10">&nbsp;</i-col>
+                                <i-col span="12">
+                                    <div>
+                                        <card style="width: 100%;">
+                                            {{value.message}}
+                                        </card>
+                                    </div>
+                                </i-col>
+                                <i-col span="2">
+                                    <avatar style="color: #eee;background-color: #2d8cf0" size="large">{{ value.name }}
+                                    </avatar>
+                                </i-col>
+                            </div>
+                            <div v-else>
+                                <i-col span="2">
+                                    <avatar style="color: #eee;background-color: #2e3030" size="large">{{ value.name }}
+                                    </avatar>
+                                </i-col>
+                                <i-col span="12">
+                                    <div>
+                                        <card style="width: 100%;">
+                                            {{value.message}}
+                                        </card>
+                                    </div>
+                                </i-col>
+                                <i-col span="10">&nbsp;</i-col>
+                            </div>
+                            <!-- <i-col span="8">&nbsp;</i-col> -->
+                        </row>
+                    </scroll>
+                </content>
+            </layout>
+            <affix :offset-bottom="20">
+                <card style="width:60%;margin: 0% auto; background: rgb(54, 62, 79);">
+                    <row justify="start" align="top">
+                        <i-col span="2">&nbsp;</i-col>
+                        <i-col span="16">
+                            <i-input ref="input" type="text" clearable placeholder="Message"></i-input>
+                        </i-col>
+                        <i-col span="4">
+                            <i-button type="primary" @click="submit">send</i-button>
+                        </i-col>
+                    </row>
+                </card>
+            </affix>
+        </layout>
+    </div>
+    <script>
+        new Vue({
+            el: '#chatroom',
+            data() {
+                return {
+                    ws: null,
+                    Data: {},//用户数据
+                    NAME: "",
+                    message: [],
+                    height: 0,
+                }
+            },
+            mounted: function () {
+                //浏览器高度自适应
+                this.height = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
+                //获取用户数据
+                var self = this;
+                axios.get('/get_userdata')
+                    .then(response => {
+                        self.DATA = response.data;
+                        self.NAME = self.DATA.user;
+                    }).catch(function (error) { // 请求失败处理
+                        console.log(error);
+                    });
+                setTimeout(function () {
+                    self.login();
+                }, 2000);
+            },
+            methods: {
+                login() {
+                    var nick = this.NAME;
+                    var self = this;
+                    var ip_addr = document.location.hostname;
+                    this.ws = new WebSocket("ws://" + ip_addr + ":5000/websockets/" + nick);
+                    // console.log("ws://" + ip_addr + ":5000/websocket/" + nick);
+                    this.ws.onopen = function () {
+                        console.log("链接开启")
+                    };
+                    this.ws.onclose = function () {
+                        console.log("链接关闭")
+                    };
+                    this.ws.onerror = function (e) {
+                        console.log("出错！！！");
+                        console.log(e)
+                    };
+                    this.ws.onmessage = function (messageEvent) {
+                        console.log(messageEvent.data);
+                        //将信息流字符串转化为json对象
+                        var message = JSON.parse(messageEvent.data);
+                        self.output(message.from_user, message.message, message.from_user == self.NAME ? true : false);
+                        return false;
+                    };
+                },
+                submit() {
+                    if (this.ws.readyState === 1) {
+                        var message = this.$refs.input.currentValue;
+                        if (this.$refs.input.currentValue == "") {
+                            this.$Message.warning('请勿发送空消息!');
+                        } else {
+                            this.$refs.input.currentValue = "";
+                            var send_str = {
+                                from_user: this.NAME,
+                                message: message
+                            };
+                            var json_send_str = JSON.stringify(send_str);
+                            this.ws.send(json_send_str);
+                        }
+                    } else {
+                        this.$Message.error('websocket链接异常');
+                        this.$Notice.warning({
+                            title: 'websocket链接异常',
+                            desc: '由于频繁进入聊天室，websocket异常，请联系管理员维护！',
+                            duration: 3
+                        });
+                    }
+                },
+                output(name, str, flag) {
+                    //flag为ture则为自己发出
+                    var x = {
+                        name: name,
+                        message: str,
+                        flag: flag,
+                    }
+                    console.log(x);
+                    this.message.push(x);
+                }
+            }
+        })
+    </script>
+</body>
+{% endraw %}
+
+</html>

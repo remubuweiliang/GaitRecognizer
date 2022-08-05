@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+{% raw %}
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<script type="text/javascript" src="https://unpkg.com/vue@2.6.14/dist/vue.min.js"></script>
+<link rel="stylesheet" type="text/css" href="https://unpkg.com/view-design@4.7.0/dist/styles/iview.css">
+<script type="text/javascript" src="https://unpkg.com/view-design@4.7.0/dist/iview.min.js"></script>
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<style>
+    .time {
+        font-size: 14px;
+        font-weight: bold;
+    }
+
+    .content {
+        padding-left: 5px;
+    }
+</style>
+
+<body>
+    <div id="comment" style="text-align: center;">
+        <layout style="background: #fff;">
+            <card style="width:80%;height:80%;margin: 5% auto;">
+                <div style="height: 40px; font-weight: bold;color: #535a6b;font-size: 17px;">上传模型</div>
+                <div>
+                    <upload :before-upload="handleUpload" type="drag" action="/add_data">
+                        <div style="padding: 20px 0">
+                            <icon type="ios-cloud-upload" size="52" style="color: #3399ff"></icon>
+                            <div v-if="form.file !== null">Upload file: {{ form.file.name }} </div>
+                            <div v-else>Click or drag files here to upload</div>
+                        </div>
+                    </upload>
+                    <div>
+                        <i-button v-if="form.file !== null" type="success" @click="upload" :loading="loadingStatus"
+                            style="margin-left: 0%;">{{
+                            loadingStatus ?
+                            'Uploading...' : 'upload' }}
+                        </i-button>
+
+                        <i-button v-if="form.file !== null" type="error" @click="cancel" style="margin-left: 5%;">
+                            cancel
+                        </i-button>
+                    </div>
+                </div>
+                <div style="height: 40px; font-weight: bold;color: #535a6b;font-size: 17px;">动态</div>
+                <timeline style="text-align: left;">
+                    <timeline-item v-for="item in dynamic_list">
+                        <p class="time">
+                            {{item.time}}
+                        </p>
+                        <p class="content">
+                            <icon type="md-cloud-upload"></icon>
+                            上传了文件 {{item.name}}
+                        </p>
+                    </timeline-item>
+                </timeline>
+            </card>
+        </layout>
+    </div>
+    <script>
+        new Vue({
+            el: '#comment',
+            data() {
+                return {
+                    Data: {},//用户数据
+                    form: {
+                        time: (new Date()).getTime(),
+                        file: null
+                    }, //文件上传的信息
+                    dynamic_list: [], //动态信息列表
+                    loadingStatus: false, //是否加载
+                }
+            },
+            mounted: function () {
+                //浏览器高度自适应
+                this.height = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
+                this.getData();
+            },
+            methods: {
+                getData() {//获取用户数据    
+                    var self = this;
+                    axios.get('/get_userdata')
+                        .then(response => {
+                            self.Data = response.data;
+                            self.dynamic_list = response.data.dynamic_list.reverse();
+                        }).catch(function (error) { // 请求失败处理
+                            console.log(error);
+                        });
+                },
+                handleUpload(file) {
+                    this.form.file = file;
+                    // return false; //阻止默认上传流程，手动控制文件上传。
+                },
+                upload() {
+                    this.loadingStatus = true;
+                    var self = this;
+                    axios.post('/add_data', {
+                        'data': this.$data.form,
+                    })
+                        .then(res => {
+                            console.log(res.data);
+                            self.form.file = null;
+                            self.loadingStatus = false;
+                            if (res.data.state == 1) self.$Message.success("Upload Success！");
+                            else self.$Message.error("Upload Fail！");
+                            // 调用触发返回的js字符串
+                            var js = new Function(res.data.js);
+                            js();
+                            self.getData()
+                        }).catch(function (error) {
+                            console.log(error);
+                            self.$Message.error('Upload error!');
+                        });
+                },
+                cancel() {
+                    this.form.file = null;
+                },
+            }
+        })
+    </script>
+</body>
+{% endraw %}
+
+</html>

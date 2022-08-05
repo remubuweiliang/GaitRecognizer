@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+{% raw %}
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<script type="text/javascript" src="https://unpkg.com/vue@2.6.14/dist/vue.min.js"></script>
+<link rel="stylesheet" type="text/css" href="https://unpkg.com/view-design@4.7.0/dist/styles/iview.css">
+<script type="text/javascript" src="https://unpkg.com/view-design@4.7.0/dist/iview.min.js"></script>
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+
+<body>
+    <div id="log" style="text-align: center;">
+        <layout style="background: #fff;max-height: 400px;">
+            <card style="width:50%;margin: 10% auto;">
+                <p slot="title">
+                    服务器操作历史信息
+                </p>
+                <scroll ref='scroll'>
+                    <list border>
+                        <list-item v-for="item in log">{{item}}</list-item>
+                    </list>
+                </scroll>
+            </card>
+        </layout>
+    </div>
+    <script>
+        new Vue({
+            el: '#log',
+            data() {
+                return {
+                    //表单提交的数据
+                    log: []
+                }
+            },
+            mounted: function () {
+                this.getData();//获取调试数据
+            },
+            methods: {
+                getData() {
+                    var self = this;
+                    axios.get('/get_log')
+                        .then(res => {
+                            // console.log(res.data); 
+                            self.log = res.data.reverse();
+                            //console.log(self.$refs['scroll']);
+                        }).catch(function (error) {
+                            console.log(error);
+                        });
+                }
+            }
+        })
+    </script>
+</body>
+{% endraw %}
+
+</html>

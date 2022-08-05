@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+{% raw %}
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<script type="text/javascript" src="https://unpkg.com/vue@2.6.14/dist/vue.min.js"></script>
+<link rel="stylesheet" type="text/css" href="https://unpkg.com/view-design@4.7.0/dist/styles/iview.css">
+<script type="text/javascript" src="https://unpkg.com/view-design@4.7.0/dist/iview.min.js"></script>
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+
+<body>
+    <div id="comment" style="text-align: center;">
+        <layout style="background: #fff;">
+            <card style="width:40%;margin: 5% auto;">
+                <h2 slot="title">
+                    用户评价数据
+                    <h3>数据条目：{{length}}条</h3>
+                </h2>
+                <scroll>
+                    <list item-layout="vertical">
+                        <list-item v-for="item in comment" :key="item.user">
+                            <list-item-meta avatar="https://dev-file.iviewui.com/avatar_default/avatar"
+                                :title="item.user">
+                            </list-item-meta>
+                            <divider plain orientation="left">评价</divider>
+                            <p>{{item.comment}}</p>
+                            <divider plain orientation="right" dashed>{{item.time}}</divider>
+                            <div slot="extra">
+                                <rate  disabled allow-half v-model="item.star">
+                                </rate>
+                            </div>
+                        </list-item>
+                    </list>
+                </scroll>
+            </card>
+        </layout>
+    </div>
+    <script>
+        new Vue({
+            el: '#comment',
+            data() {
+                return {
+                    comment: [],//评价的数据
+                    length: 0,
+                }
+            },
+            mounted: function () {
+                //获取用户评价数据
+                this.getData()
+            },
+            methods: {
+                getData() {
+                    var self = this;
+                    axios.get('/comment_data')
+                        .then(res => {
+                            self.$Message.success('Data Acquisition Success!');
+                            self.comment = res.data.reverse();
+                            self.length = self.comment.length;
+                        }).catch(function (error) {
+                            self.$Message.success('Data Acquisition Fail!');
+                            console.log(error);
+                        });
+                }
+            }
+        })
+    </script>
+</body>
+{% endraw %}
+
+</html>

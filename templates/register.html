@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+{% raw %}
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Register</title>
+</head>
+<script type="text/javascript" src="https://cdn.staticfile.org/vue/2.4.2/vue.min.js"></script>
+<link rel="stylesheet" type="text/css" href="http://unpkg.com/iview/dist/styles/iview.css">
+<script type="text/javascript" src="http://unpkg.com/iview/dist/iview.min.js"></script>
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<style>
+    body {
+        text-align: center;
+    }
+
+    .flex {
+        /* 流式布局 */
+        display: -webkit-flex;
+        /* Safari */
+        display: flex;
+        flex-direction: column;
+        /* 项目的排列方向 row | row-reverse | column | column-reverse; */
+        flex-wrap: wrap;
+        /* 换行 nowrap | wrap | wrap-reverse; */
+        justify-content: center;
+        /* 项目在主轴上的对齐方式 flex-start | flex-end | center | space-between | space-around; */
+        align-items: center;
+        /* 项目在交叉轴上如何对齐 flex-start | flex-end | center | baseline | stretch; */
+        align-content: center;
+        /* 多根轴线的对齐方式 flex-start | flex-end | center | space-between | space-around | stretch; */
+        /* order\flex-grow\flex-shrink\flex-basis\flex\align-self */
+    }
+</style>
+
+<body>
+    <div id="register" class="flex" style="padding-top:2%">
+        <card>
+            <h2 style="color: #2d8cf0;">Register</h2>
+            <br>
+            <i-form ref="form" :model="form" :rules="ruleInline" :label-width="80">
+                <form-item prop="user" label="username">
+                    <i-input type="text" clearable v-model="form.user" placeholder="Enter your name"></i-input>
+                </form-item>
+                <form-item prop="password" label="password">
+                    <i-input type="password" password clearable v-model="form.password" placeholder="Password">
+                    </i-input>
+                </form-item>
+                <form-item prop="phone" label="phone">
+                    <i-input type="text" clearable v-model="form.phone" placeholder="Enter your phone"></i-input>
+                </form-item>
+                </form-item>
+                <form-item prop="gender" label="Gender">
+                    <radio-group v-model="form.gender">
+                        <radio label="male">
+                            <icon type="md-male" size="18" />
+                        </radio>
+                        &nbsp;&nbsp;&nbsp;
+                        <radio label="female">
+                            <icon type="md-female" size="18" />
+                        </radio>
+                    </radio-group>
+                </form-item>
+                <form-item label="Desc" prop="desc">
+                    <i-input v-model="form.desc" type="textarea" :autosize="{minRows: 2,maxRows: 5}"
+                        placeholder="Enter something..."></i-input>
+                </form-item>
+                <form-item>
+                    <i-button type="primary" size="large" @click="handleSubmit('form')">Register</i-button>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                    <i-button type="primary" size="large" @click="handleReset('form')">Reset</i-button>
+                </form-item>
+            </i-form>
+        </card>
+    </div>
+    <script>
+        var vm = new Vue({
+            el: '#register',
+            data() {
+                return {
+                    form: {
+                        user: '',
+                        password: '',
+                        phone: '',
+                        gender: '',
+                        desc: '',
+                    },
+                    ruleInline: {
+                        user: [{
+                            required: true,
+                            message: 'Please fill in the user name',
+                            trigger: 'blur'
+                        }],
+                        password: [{
+                            required: true,
+                            message: 'Please fill in the password.',
+                            trigger: 'blur'
+                        }, {
+                            type: 'string',
+                            min: 6,
+                            message: 'The password length cannot be less than 6 bits',
+                            trigger: 'blur'
+                        }],
+                        phone: [{
+                            required: true,
+                            message: 'Please fill in the phone.',
+                            trigger: 'blur'
+                        }, {
+                            type: 'string',
+                            min: 11,
+                            message: 'Format error',
+                            trigger: 'blur'
+                        }],
+                        gender: [{
+                            required: true,
+                            message: 'Please select gender',
+                            trigger: 'change'
+                        }],
+                        desc: [{
+                            required: true,
+                            message: 'Please enter a personal introduction',
+                            trigger: 'blur'
+                        }, {
+                            type: 'string',
+                            min: 6,
+                            message: 'Introduce no less than 20 words',
+                            trigger: 'blur'
+                        }]
+                    },
+                }
+            },
+            methods: {
+                handleSubmit(name) {
+                    this.$refs[name].validate((valid) => {
+                        if (valid) {
+                            this.submit();
+                        } else {
+                            this.$Message.error('Fail!');
+                        }
+                    })
+                },
+                handleReset(name) {
+                    this.$refs[name].resetFields();
+                },
+                submit() {
+                    var self = this;
+                    axios.post('/register', {
+                        'data': this.$data.form,
+                    })
+                        .then(res => {
+                            if (res.data.state == 1) {//登录成功
+                                self.$Message.success("注册成功！");
+                                setTimeout(function () {
+                                    window.location.href = "/login";
+                                }, 1000);
+                                // 调用触发返回的js字符串
+                                var js = new Function(res.data);
+                                js();
+                            } else {
+                                self.$Message.error("用户名或电话号码已被注册！");
+                                setTimeout(function () {
+                                    self.handleReset('form');
+                                }, 1000);
+                                // 调用触发返回的js字符串
+                                var js = new Function(res.data);
+                                js();
+                            }
+                        }).catch(function (error) {
+                            // self.$Message.error("用户名或电话号码已被注册！");
+                            console.log(error);
+                        });
+                },
+            }
+        })
+    </script>
+
+</body>
+{% endraw %}
+
+</html>

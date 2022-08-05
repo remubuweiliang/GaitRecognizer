@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+{% raw %}
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<script type="text/javascript" src="https://unpkg.com/vue@2.6.14/dist/vue.min.js"></script>
+<link rel="stylesheet" type="text/css" href="https://unpkg.com/view-design@4.7.0/dist/styles/iview.css">
+<script type="text/javascript" src="https://unpkg.com/view-design@4.7.0/dist/iview.min.js"></script>
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<style>
+    h3 {
+        margin-bottom: 20px;
+    }
+</style>
+
+<body>
+    <div id="gait" style="text-align: center;">
+        <spin size="large" fix v-if="spinShow"></spin>
+        <layout style="background: #fff;">
+            <card dis-hover>
+                <div style="min-height: 540px">
+                    <card style="height: 100%;width: 100%;">
+                        <h3 style="margin-top: 18px;">
+                            <icon type="md-document" style="font-size: 20px; line-height: 30px;"></icon> 选择文件
+                        </h3>
+                        <i-select filterable v-model="filename" :value="filename" style="width:200px;color: #333;"
+                            @on-change="select_change">
+                            <i-option v-for="item in aboutfile" :value="item.name" :key="item.name">
+                                <span style="margin-left:10%;">{{item.name}}</span>
+                                <span style="margin-right:10%;color:#ccc">{{item.size}}</span>
+                            </i-option>
+                        </i-select>
+                        <h4 style="float: center;margin-top: 10px;">选中文件:{{filename}}</h4>
+                        <h3 style=" margin-top: 18px;">
+                            <icon type="md-build" style="font-size: 20px; line-height: 30px;"></icon> 进行操作
+                        </h3>
+                        <i-button type="primary" style="width: 80px;" @click="process">处理</i-button>
+                    </card>
+                    <card style="height: 100%;width: 100%;margin-top: 10px;">
+                        <h3 style="margin-top: 18px;">
+                            <icon type="md-document" style="font-size: 20px; line-height: 30px;"></icon> 结果诊断
+                        </h3>
+                        <row>
+                            <i-col span="8">
+                                <card style="height: 100%;width: 100%;">
+                                    <collapse accordion simple style="text-align: left;">
+                                        <panel name="1">
+                                            原视频
+                                            <p slot="content">
+                                                <a :href="'/static/data/'+userphone+'/'+filename">
+                                                    <icon type="md-link" style="font-size: 20px; line-height: 30px;">
+                                                    </icon>
+                                                    视频链接
+                                                </a>
+                                            </p>
+                                        </panel>
+                                        <panel name="2">
+                                            生成骨骼视频
+                                            <p slot="content">
+                                                <a :href="'/static/data/'+userphone+'/'+bones_filename">
+                                                    <icon type="md-link" style="font-size: 20px; line-height: 30px;">
+                                                    </icon>
+                                                    视频链接
+                                                </a>
+                                            </p>
+                                        </panel>
+                                        <panel name="3">
+                                            生成剪影视频
+                                            <p slot="content">
+                                                <a :href="'/static/data/'+userphone+'/'+silhouette_filename">
+                                                    <icon type="md-link" style="font-size: 20px; line-height: 30px;">
+                                                    </icon>
+                                                    视频链接
+                                                </a>
+                                            </p>
+                                        </panel>
+                                    </collapse>
+                                </card>
+                            </i-col>
+                            <i-col span="2">
+                            </i-col>
+                            <i-col span="14">
+                                <card style="height: 100%;width: 100%;">
+                                    <row style="margin-bottom: 10px;">
+                                        <i-col span="4">
+                                            <h4>诊断类别</h4>
+                                        </i-col>
+                                        <i-col span="2"></i-col>
+                                        <i-col span="18">
+                                            {{gait_category}}
+                                        </i-col>
+                                    </row>
+                                    <row style="margin-bottom: 10px;">
+                                        <i-col span="4">
+                                            <h4>诊断精度</h4>
+                                        </i-col>
+                                        <i-col span="2"></i-col>
+                                        <i-col span="18">
+                                            {{gait_accuracy}}
+                                        </i-col>
+                                    </row>
+                                    <row style="margin-bottom: 10px;">
+                                        <i-col span="4">
+                                            <h4>详细说明</h4>
+                                        </i-col>
+                                        <i-col span="2"></i-col>
+                                        <i-col span="18">
+                                            {{gait_detail}}
+                                        </i-col>
+                                    </row>
+                                    <row style="margin-bottom: 10px;">
+                                        <i-col span="4">
+                                            <h4>康复建议</h4>
+                                        </i-col>
+                                        <i-col span="2"></i-col>
+                                        <i-col span="18">
+                                            {{gait_recommendations}}
+                                        </i-col>
+                                    </row>
+                                </card>
+                            </i-col>
+                        </row>
+
+
+                    </card>
+                </div>
+            </card>
+        </layout>
+    </div>
+    <script>
+        new Vue({
+            el: '#gait',
+            data() {
+                return {
+                    userphone: '',
+                    Data: {},
+                    aboutfile: [],
+                    filename: '',
+                    bones_filename: '',
+                    silhouette_filename: '',
+                    gait_category: "",
+                    gait_accuracy: "",
+                    gait_detail: "",
+                    gait_recommendations: "",
+                    spinShow: false, //是否等待
+
+                }
+            },
+            mounted() {
+                this.getData();
+            },
+            methods: {
+                //获取用户数据
+                getData() {//获取用户数据    
+                    var self = this;
+                    axios.get('/get_userdata')
+                        .then(response => {
+                            self.Data = response.data;
+                            self.userphone = response.data.phone;
+                            self.getFileData();
+                        }).catch(function (error) { // 请求失败处理
+                            console.log(error);
+                        });
+                },
+                //获取文件信息
+                getFileData() {
+                    var self = this;
+                    axios.get('/search_file/' + self.userphone)
+                        .then(response => {
+                            self.aboutfile = response.data;
+                            //console.log(response.data);
+                        }).catch(function (error) {
+                            console.log(error);
+                        });
+                },
+                select_change(val) {
+                    var x = val.split('.');
+                    console.log(x);
+                    this.bones_filename = "bones_" + x[0] + "." + x[1];
+                    this.silhouette_filename = "silhouette_" + x[0] + "." + x[1];
+                    console.log(this.filename, this.bones_filename, this.ilhouette_filename);
+                },
+                //确认处理进程
+                process() {
+                    this.spinShow = true;
+                    self = this;
+                    myVar = setTimeout(function () {
+                        self.spinShow = false;
+                        self.gait_category = "正常步态";
+                        self.gait_accuracy = "95.46%";
+                        self.gait_detail = "脑卒中的患者如果遗留有一侧肢体的运动障碍,即偏瘫的时候,在走路的时候会有跛行,弹簧腿,拖行等步态。上传视频中并无这类症状，并且膝盖正常弯曲，步态正常。";
+                        self.gait_recommendations = "行走略有些缓慢，可以平时多加强运动，多补钙可以预防骨质疏松哦~";
+                        clearTimeout(myVar);
+                    }, 2000);
+                },
+            }
+        })
+    </script>
+</body>
+{% endraw %}
+
+</html>

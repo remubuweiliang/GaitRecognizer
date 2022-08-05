@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+{% raw %}
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<script type="text/javascript" src="https://unpkg.com/vue@2.6.14/dist/vue.min.js"></script>
+<link rel="stylesheet" type="text/css" href="https://unpkg.com/view-design@4.7.0/dist/styles/iview.css">
+<script type="text/javascript" src="https://unpkg.com/view-design@4.7.0/dist/iview.min.js"></script>
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<style>
+    .filename:hover {
+        color: rgb(61, 141, 237);
+        cursor: pointer;
+    }
+
+    .aboutfile p {
+        margin-top: 10px;
+    }
+</style>
+
+<body>
+    <div id="file" style="text-align: center;">
+        <layout style="background: #fff;">
+            <card dis-hover>
+                <div style="min-height: 500px">
+                    <card :bordered="false"
+                        style="border: #d7dde4 1px solid;margin-left: 20%;margin-bottom:10px;width: 60%;text-align: left;"
+                        v-for="(item,index) in aboutfile">
+                        <p slot="title" class="filename" @click="downloadfile(item,index)" size="48">
+                            <icon type="ios-folder-open"></icon> {{item.name}}
+                        </p>
+                        <div class="aboutfile">
+                            <p>
+                                创建时间：{{item.establish_time}}
+                            </p>
+                            <p>
+                                文件大小：{{item.size}}
+                            </p>
+                            <p>
+                                修改时间：{{item.modify_time}}
+                            </p>
+                            <p>
+                                访问时间：{{item.visit_time}}
+                            </p>
+                            <p>
+                                修改文件：
+                                <i-button to='/upload'>重新上传</i-button>
+                            </p>
+                        </div>
+                    </card>
+                </div>
+            </card>
+        </layout>
+    </div>
+    <script>
+        new Vue({
+            el: '#file',
+            data() {
+                return {
+                    userphone: '',
+                    Data: {},
+                    aboutfile: [], //文件列表
+                    pathname: '' //文件名
+                }
+            },
+            mounted() {
+                this.getData();
+            },
+            destroyed() {
+                // 注意移除监听!
+                window.removeEventListener('message', this.handleMessage)
+            },
+            methods: {
+                //获取用户数据
+                getData() {//获取用户数据    
+                    var self = this;
+                    axios.get('/get_userdata')
+                        .then(response => {
+                            self.Data = response.data;
+                            self.userphone = response.data.phone;
+                            self.getFileData();
+                        }).catch(function (error) { // 请求失败处理
+                            console.log(error);
+                        });
+                },
+                //获取文件信息
+                getFileData() {
+                    var self = this;
+                    axios.get('/search_file/' + this.userphone)
+                        .then(res => {
+                            // console.log(res.data); 
+                            self.$Message.success("Get Success！");
+                            self.aboutfile = res.data;
+                        }).catch(function (error) {
+                            self.$Message.error("Get Error！");
+                            console.log(error);
+                        });
+                },
+                //下载文件
+                downloadfile(items, id) {
+                    var self = this;
+                    console.log(items);
+                    if (items.is_dir == false) {
+                        // console.log(self.pathname);
+                        window.location.href = '/download/' + self.userphone + self.pathname + '/' + items.name
+                    } else {
+                        self.pathname = self.pathname + '/' + items.name;
+                        // console.log(self.pathname);
+                        axios.get('/search_file/' + this.userphone + '/' + items.name)
+                            .then(res => {
+                                // console.log(res.data); 
+                                self.$Message.success("Get Success！");
+                                self.aboutfile = res.data;
+                            }).catch(function (error) {
+                                self.$Message.error("Get Error！");
+                                console.log(error);
+                            });
+                    }
+                }
+            }
+        })
+    </script>
+</body>
+{% endraw %}
+
+</html>

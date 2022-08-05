@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+{% raw %}
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<script type="text/javascript" src="https://unpkg.com/vue@2.6.14/dist/vue.min.js"></script>
+<link rel="stylesheet" type="text/css" href="https://unpkg.com/view-design@4.7.0/dist/styles/iview.css">
+<script type="text/javascript" src="https://unpkg.com/view-design@4.7.0/dist/iview.min.js"></script>
+<script src=" https://unpkg.com/axios/dist/axios.min.js"></script>
+<style>
+    /* 修改滚动条样式 */
+
+    ::-webkit-scrollbar {
+        /* 竖轴宽度 */
+        width: 6px;
+        /* 横轴宽度 */
+        height: 6px;
+        background-color: #ffffff;
+    }
+
+    /* 滚动槽 */
+
+    ::-webkit-scrollbar-track {
+        border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background-color: #2db7f5;
+    }
+</style>
+
+<body>
+    <div id="search" style="text-align: center;">
+        <layout style="background: #fff;">
+            <card style="width:80%;height:500px;margin: 2% auto;">
+                <p slot="title">
+                    <icon type="md-analytics" size=22></icon>
+                </p>
+                <tabs type="card" draggable="true" v-model="activeTap">
+                    <tab-pane label="search" name="search">
+                        <affix :offset-top="20">
+                            <card style="width:60%;margin: 0% auto; background: rgb(54, 62, 79);">
+                                <row justify="start" align="top">
+                                    <i-col span="2">&nbsp;</i-col>
+                                    <i-col span="16">
+                                        <i-input ref="input" type="text" clearable placeholder="Message"></i-input>
+                                    </i-col>
+                                    <i-col span="4">
+                                        <i-button type="primary" @click="sub">send</i-button>
+                                    </i-col>
+                                </row>
+                            </card>
+                        </affix>
+                        <scroll style="margin: 1% 4%">
+                            <div v-for="(item, index) in real_time_info">
+                                <card icon="ios-options" :bordered="false" :padding="0"
+                                    style="width:80%;margin: 6px auto;" @click.native="addTab(index)">
+                                    <h4 slot="title" v-html="item.titles">
+                                        {{item.titles}}
+                                    </h4>
+                                    <a href="#" slot="extra">查看详情</a>
+                                    <p v-html="item.subTitles">{{item.subTitles}}</p>
+                                </card>
+                            </div>
+                        </scroll>
+                    </tab-pane>
+                    <tab-pane closable v-for="(tab, index) in tabList" :key="index" :label="tab.label" :name="tab.name">
+                        <scroll>
+                            <div style="width: 80%;margin: 0 auto;">
+                                <h3 :v-html="tab.data.titles">{{tab.data.titles}}</h3>
+                                <divider plain orientation="left"></divider>
+                                <div>
+                                    <span :v-html="tab.data.time[0]">{{tab.data.time[0]}}</span>&nbsp;&nbsp;&nbsp;&nbsp;
+                                    <span :v-html="tab.data.time[1]">{{tab.data.time[1]}}</span>
+                                </div>
+                                <br>
+                                <p v-html="tab.data.content" style="text-align: left;">{{tab.data.content}}</p>
+                            </div>
+                        </scroll>
+                    </tab-pane>
+                </tabs>
+            </card>
+        </layout>
+        <spin size="large" fix v-if="spinShow"></spin>
+    </div>
+    <script>
+        new Vue({
+            el: '#search',
+            data() {
+                return {
+                    tabList: [],
+                    activeTap: 'search', //当前活动标签页
+                    real_time_info: null, //资讯主页数据
+                    spinShow: false, //是否等待
+                    flag: false, //数据是否加载完毕
+                    temp: null, //暂存数据
+                }
+            },
+            methods: {
+                sub() {
+                    self = this;
+                    this.txt = this.$refs.input.currentValue;
+                    if (this.$refs.input.currentValue == "") {
+                        this.$Message.warning('请勿搜索空消息!');
+                    } else {
+                        this.$refs.input.currentValue = "";
+                        this.real_time_info = null;
+                        this.tabList = [];
+                        this.spin();
+                        var self = this;
+                        axios.post('/real_time_info', {
+                            txt: self.txt
+                        })
+                            .then(function (response) {
+                                console.log(response);
+                                self.flag = true;
+                                self.real_time_info = response.data;
+                            })
+                            .catch(function (error) {
+                                console.log(error);
+                            });
+                    }
+                },
+                spin() {
+                    this.spinShow = true;
+                    self = this;
+                    this.timer = setInterval(() => {
+                        if (this.flag) {
+                            clearInterval(self.timer);
+                            self.flag = false;
+                            self.spinShow = false;
+                        }
+                    }, 1000);
+                },
+                addTab(index) {
+                    // console.log(index);
+                    this.spin();
+                    var x = {
+                        label: this.real_time_info[index].titles.substring(0, 3) + '...',
+                        name: this.real_time_info[index].titles,
+                        data: {},
+                    }
+                    this.temp = x.name;
+                    this.tabList.push(x);
+                    var link = this.real_time_info[index].link;
+                    // console.log("链接：" + link);
+                    var self = this;
+                    axios.get(link)
+                        .then(function (response) {
+                            if (response.data == null) {
+                                self.$Message.error("Search Error!");
+                                self.flag = true;
+                            } else {
+                                // var data = JSON.parse(response.data)
+                                // console.log(data);
+                                var y = response.data
+                                y.content = y.content.replace(/<img[^>]*>/gi, "");
+                                y.content = y.content.replace(/<\/img>/gi, "");
+                                // console.log(y.content);
+                                self.tabList[self.tabList.length - 1].data = y;
+                                self.flag = true;
+                                self.activeTap = self.temp;
+                            }
+                        })
+                        .catch(function (error) {
+                            console.log(error);
+                        });
+                }
+            }
+        })
+    </script>
+</body>
+{% endraw %}
+
+</html>

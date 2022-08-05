@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+{% raw %}
+
+<head>
+    <meta charset="utf-8">
+    <title>测试</title>
+    <script type="text/javascript" src="https://cdn.staticfile.org/vue/2.4.2/vue.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="http://unpkg.com/iview/dist/styles/iview.css">
+    <script type="text/javascript" src="http://unpkg.com/iview/dist/iview.min.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+</head>
+<style>
+    #chatbox {
+        width: 60%;
+        background: rgb(54, 62, 79);
+        margin: 2% 20%;
+        box-shadow: 0 1px 1px rgba(0, 0, 0, .1);
+        border-radius: 10px;
+    }
+
+    /* 修改滚动条样式 */
+
+    ::-webkit-scrollbar {
+        /* 竖轴宽度 */
+        width: 6px;
+        /* 横轴宽度 */
+        height: 6px;
+        background-color: #ffffff;
+    }
+
+    /* 滚动槽 */
+
+    ::-webkit-scrollbar-track {
+        border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background-color: #2db7f5;
+    }
+</style>
+
+<body>
+    <div id="aichat" style="text-align: center;">
+        <layout style="background: #fff;">
+            <layout id='chatbox'>
+                <content :style="{margin: '20px', background: '#515a6e', minHeight: height*0.7+'px'}">
+                    <scroll :height=height*0.7>
+                        <row style="padding:20px" v-for="(value, index) in message" :key="index"
+                            style="margin: 32px 0;background-color: white;">
+                            <div v-if="value.flag">
+                                <i-col span="10">&nbsp;</i-col>
+                                <i-col span="12">
+                                    <div>
+                                        <card style="width: 100%;">
+                                            <!-- <div style="text-align: right;">{{value.message}}</div> -->
+                                            <div>{{value.message}}</div>
+                                        </card>
+                                    </div>
+                                </i-col>
+                                <i-col span="2"><span style="margin-left: 0;">
+                                        <icon type="md-contact" size="36" color="#eee" />
+                                    </span></i-col>
+                            </div>
+                            <div v-else>
+                                <i-col span="2"> <span style="margin-left: 0;">
+                                        <icon type="md-ionitron" size="36" color="#eee" />
+                                    </span></i-col>
+                                <i-col span="12">
+                                    <div>
+                                        <card style="width: 100%;">
+                                            <!-- <div style="text-align: left;">{{value.message}}</div> -->
+                                            <div>{{value.message}}</div>
+                                        </card>
+                                    </div>
+                                </i-col>
+                                <i-col span="10">&nbsp;</i-col>
+                            </div>
+                            <!-- <i-col span="8">&nbsp;</i-col> -->
+                        </row>
+                    </scroll>
+                </content>
+            </layout>
+            <affix :offset-bottom="20">
+                <card style="width:60%;margin: 0% auto; background: rgb(54, 62, 79);">
+                    <row justify="start" align="top">
+                        <i-col span="2">&nbsp;</i-col>
+                        <i-col span="16">
+                            <i-input ref="input" type="text" clearable placeholder="Message"></i-input>
+                        </i-col>
+                        <i-col span="4">
+                            <i-button type="primary" @click="sub">send</i-button>
+                        </i-col>
+                    </row>
+                </card>
+            </affix>
+        </layout>
+    </div>
+    <script>
+        new Vue({
+            el: '#aichat',
+            data() {
+                return {
+                    message: [],
+                    height: 0,
+                }
+            },
+            mounted: function () {
+                //浏览器高度自适应
+                this.height = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
+            },
+            methods: {
+                sub() {
+                    self = this;
+                    this.txt = this.$refs.input.currentValue;
+                    if (this.$refs.input.currentValue == "") {
+                        this.$Message.warning('请勿发送空消息!');
+                    } else {
+                        this.$refs.input.currentValue = "";
+                        this.output(this.txt, true);
+                        axios.post('/chat_info', {
+                            txt: self.txt
+                        })
+                            .then(function (response) {
+                                self.output(response.data, false)
+                            })
+                            .catch(function (error) {
+                                console.log(error);
+                            });
+                    }
+                },
+                output(str, flag) {
+                    //flag为ture则为人
+                    var x = {
+                        flag: flag,
+                        message: str,
+                    }
+                    this.message.push(x);
+                }
+            }
+        })
+    </script>
+</body>
+{% endraw %}
+
+</html>
